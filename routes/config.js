@@ -3,18 +3,20 @@ const router  = express.Router();
 const { requireAuth }          = require('../middleware/auth');
 const { supabase }             = require('../services/supabase');
 const { getConfig, setConfig } = require('../services/supabase');
-const { testProvider, PROVIDERS } = require('../services/ai');
+const { testProvider, PROVIDERS, OPENROUTER_FREE_MODELS } = require('../services/ai');
 
 // مفاتيح DB → متغيرات البيئة
 const ENV_MAP = {
-    gemini_api_key:    'GEMINI_API_KEY',
-    openai_api_key:    'OPENAI_API_KEY',
-    anthropic_api_key: 'ANTHROPIC_API_KEY',
-    gemini_model:      'GEMINI_MODEL',
-    openai_model:      'OPENAI_MODEL',
-    anthropic_model:   'ANTHROPIC_MODEL',
-    active_provider:   'DEFAULT_AI_PROVIDER',
-    frontend_url:      'FRONTEND_URL',
+    gemini_api_key:       'GEMINI_API_KEY',
+    openai_api_key:       'OPENAI_API_KEY',
+    anthropic_api_key:    'ANTHROPIC_API_KEY',
+    openrouter_api_key:   'OPENROUTER_API_KEY',
+    gemini_model:         'GEMINI_MODEL',
+    openai_model:         'OPENAI_MODEL',
+    anthropic_model:      'ANTHROPIC_MODEL',
+    openrouter_model:     'OPENROUTER_MODEL',
+    active_provider:      'DEFAULT_AI_PROVIDER',
+    frontend_url:         'FRONTEND_URL',
 };
 
 // GET /api/config
@@ -29,7 +31,7 @@ router.get('/', requireAuth, async (req, res) => {
     }
 });
 
-// POST /api/config — حفظ + تحديث process.env فوراً
+// POST /api/config
 router.post('/', requireAuth, async (req, res) => {
     try {
         const { settings } = req.body;
@@ -54,12 +56,17 @@ router.post('/test-ai', requireAuth, async (req, res) => {
     res.json(await testProvider(provider));
 });
 
-// GET /api/config/providers
+// GET /api/config/providers — يشمل OpenRouter والنماذج المجانية
 router.get('/providers', requireAuth, (req, res) => {
     const list = Object.entries(PROVIDERS).map(([key, p]) => ({
         key, name: p.name, model: p.model(), enabled: p.enabled(),
     }));
-    res.json({ ok: true, providers: list, active: process.env.DEFAULT_AI_PROVIDER || 'gemini' });
+    res.json({
+        ok: true,
+        providers: list,
+        active: process.env.DEFAULT_AI_PROVIDER || 'gemini',
+        openrouter_free_models: OPENROUTER_FREE_MODELS,
+    });
 });
 
 module.exports = router;
