@@ -1,22 +1,24 @@
+// ============================================================
+//  Story Engine — routes/config.js  v2.1
+// ============================================================
 const express = require('express');
 const router  = express.Router();
-const { requireAuth }          = require('../middleware/auth');
-const { supabase }             = require('../services/supabase');
-const { getConfig, setConfig } = require('../services/supabase');
+const { requireAuth }             = require('../middleware/auth');
+const { supabase, setConfig }     = require('../services/supabase');
 const { testProvider, PROVIDERS, OPENROUTER_FREE_MODELS } = require('../services/ai');
 
-// مفاتيح DB → متغيرات البيئة
+// خريطة: مفتاح DB → متغير بيئة
 const ENV_MAP = {
-    gemini_api_key:       'GEMINI_API_KEY',
-    openai_api_key:       'OPENAI_API_KEY',
-    anthropic_api_key:    'ANTHROPIC_API_KEY',
-    openrouter_api_key:   'OPENROUTER_API_KEY',
-    gemini_model:         'GEMINI_MODEL',
-    openai_model:         'OPENAI_MODEL',
-    anthropic_model:      'ANTHROPIC_MODEL',
-    openrouter_model:     'OPENROUTER_MODEL',
-    active_provider:      'DEFAULT_AI_PROVIDER',
-    frontend_url:         'FRONTEND_URL',
+    gemini_api_key:     'GEMINI_API_KEY',
+    openai_api_key:     'OPENAI_API_KEY',
+    anthropic_api_key:  'ANTHROPIC_API_KEY',
+    openrouter_api_key: 'OPENROUTER_API_KEY',
+    gemini_model:       'GEMINI_MODEL',
+    openai_model:       'OPENAI_MODEL',
+    anthropic_model:    'ANTHROPIC_MODEL',
+    openrouter_model:   'OPENROUTER_MODEL',
+    active_provider:    'DEFAULT_AI_PROVIDER',
+    frontend_url:       'FRONTEND_URL',
 };
 
 // GET /api/config
@@ -39,9 +41,10 @@ router.post('/', requireAuth, async (req, res) => {
             return res.status(400).json({ ok: false, error: 'settings مطلوب' });
 
         for (const [key, value] of Object.entries(settings)) {
-            const val = String(value);
+            const val = String(value).trim();
+            if (!val) continue; // لا تحفظ قيماً فارغة
             await setConfig(key, val);
-            if (ENV_MAP[key] && val) process.env[ENV_MAP[key]] = val;
+            if (ENV_MAP[key]) process.env[ENV_MAP[key]] = val;
         }
         res.json({ ok: true, saved: Object.keys(settings).length });
     } catch (e) {
@@ -56,16 +59,45 @@ router.post('/test-ai', requireAuth, async (req, res) => {
     res.json(await testProvider(provider));
 });
 
-// GET /api/config/providers — يشمل OpenRouter والنماذج المجانية
+// GET /api/config/providers — الحالة الكاملة
 router.get('/providers', requireAuth, (req, res) => {
     const list = Object.entries(PROVIDERS).map(([key, p]) => ({
-        key, name: p.name, model: p.model(), enabled: p.enabled(),
+        key,
+        name:    p.name,
+        model:   p.model(),
+        enabled: p.enabled(),
     }));
     res.json({
-        ok: true,
+        ok:      true,
         providers: list,
-        active: process.env.DEFAULT_AI_PROVIDER || 'gemini',
+        active:  process.env.DEFAULT_AI_PROVIDER || 'gemini',
         openrouter_free_models: OPENROUTER_FREE_MODELS,
+    });
+});
+
+// GET /api/config/status — أي مفاتيح مضبوطة؟
+router.get('/status', requireAuth, (req, res) => {
+    res.json({
+        ok: true,
+        keys: {
+            gemini:     !!process.env.GEMINI_API_KEY,
+            openai:     !!process.env.OPENAI_API_KEY,
+            anthropic:  !!process.env.ANTHROPIC_API_KEY,
+            openrouter: !!process.env.OPENROUTER_API_KEY,
+        },
+        active_provider: process.env.DEFAULT_AI_PROVIDER || 'gemini',
+        models: {
+            gemini:     process.env.GEMINI_MODEL     || 'gemini-2.0-flash',
+            openai:     process.env.OPENAI_MODEL     || 'gpt-4o',
+            anthropic:  process.env.ANTHROPIC_MODEL  || 'claude-sonnet-4-20250514',
+            openrouter: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat:free',
+        },
+        any_key_configured: !!(
+            process.env.GEMINI_API_KEY ||
+            process.env.OPENAI_API_KEY ||
+            process.env.ANTHROPIC_API_KEY ||
+            process.env.OPENROUTER_API_KEY
+        ),
     });
 });
 
