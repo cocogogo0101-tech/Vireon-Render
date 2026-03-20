@@ -75,15 +75,15 @@ router.get('/providers', requireAuth, (req, res) => {
     });
 });
 
-// GET /api/config/status — أي مفاتيح مضبوطة؟
+// GET /api/config/status — أي مفاتيح مضبوطة فعلياً؟
 router.get('/status', requireAuth, (req, res) => {
     res.json({
         ok: true,
         keys: {
-            gemini:     !!process.env.GEMINI_API_KEY,
-            openai:     !!process.env.OPENAI_API_KEY,
-            anthropic:  !!process.env.ANTHROPIC_API_KEY,
-            openrouter: !!process.env.OPENROUTER_API_KEY,
+            gemini:     PROVIDERS.gemini.enabled(),
+            openai:     PROVIDERS.openai.enabled(),
+            anthropic:  PROVIDERS.anthropic.enabled(),
+            openrouter: PROVIDERS.openrouter.enabled(),
         },
         active_provider: process.env.DEFAULT_AI_PROVIDER || 'gemini',
         models: {
@@ -92,12 +92,7 @@ router.get('/status', requireAuth, (req, res) => {
             anthropic:  process.env.ANTHROPIC_MODEL  || 'claude-sonnet-4-20250514',
             openrouter: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat:free',
         },
-        any_key_configured: !!(
-            process.env.GEMINI_API_KEY ||
-            process.env.OPENAI_API_KEY ||
-            process.env.ANTHROPIC_API_KEY ||
-            process.env.OPENROUTER_API_KEY
-        ),
+        any_key_configured: Object.values(PROVIDERS).some(p => p.enabled()),
     });
 });
 
