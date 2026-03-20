@@ -46,8 +46,9 @@ async function loadConfigFromDB() {
         let loaded = 0;
         data.forEach(row => {
             const envKey = map[row.key];
-            if (envKey && row.value && !process.env[envKey]) {
-                process.env[envKey] = row.value;
+            if (envKey && row.value && row.value.trim()) {
+                // دائماً اكتب فوق — قيمة DB أولوية على .env
+                process.env[envKey] = row.value.trim();
                 loaded++;
             }
         });
