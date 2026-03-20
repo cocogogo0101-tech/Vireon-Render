@@ -15,6 +15,16 @@ const OPENROUTER_FREE_MODELS = [
     { id: 'mistralai/mistral-nemo:free',               label: 'Mistral Nemo (مجاني)' },
 ];
 
+// ── التحقق أن المفتاح حقيقي وليس placeholder ─────────────────
+function isRealKey(key) {
+    if (!key) return false;
+    const k = key.trim();
+    if (k.length < 8) return false;
+    // رفض القيم الوهمية الشائعة
+    const fakes = ['your_', 'YOUR_', 'xxx', 'change_', 'example', 'placeholder', 'sk-xxx', 'AIza_your'];
+    return !fakes.some(f => k.startsWith(f) || k.includes(f));
+}
+
 // ── Provider Config ───────────────────────────────────────────
 const PROVIDERS = {
     gemini: {
@@ -22,28 +32,28 @@ const PROVIDERS = {
         url:     'https://generativelanguage.googleapis.com/v1beta/models/',
         model:   () => process.env.GEMINI_MODEL || 'gemini-2.0-flash',
         key:     () => process.env.GEMINI_API_KEY,
-        enabled: () => !!process.env.GEMINI_API_KEY,
+        enabled: () => isRealKey(process.env.GEMINI_API_KEY),
     },
     openai: {
         name:    'OpenAI',
         url:     'https://api.openai.com/v1/chat/completions',
         model:   () => process.env.OPENAI_MODEL || 'gpt-4o',
         key:     () => process.env.OPENAI_API_KEY,
-        enabled: () => !!process.env.OPENAI_API_KEY,
+        enabled: () => isRealKey(process.env.OPENAI_API_KEY),
     },
     anthropic: {
         name:    'Anthropic',
         url:     'https://api.anthropic.com/v1/messages',
         model:   () => process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
         key:     () => process.env.ANTHROPIC_API_KEY,
-        enabled: () => !!process.env.ANTHROPIC_API_KEY,
+        enabled: () => isRealKey(process.env.ANTHROPIC_API_KEY),
     },
     openrouter: {
         name:    'OpenRouter',
         url:     'https://openrouter.ai/api/v1/chat/completions',
         model:   () => process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat:free',
         key:     () => process.env.OPENROUTER_API_KEY,
-        enabled: () => !!process.env.OPENROUTER_API_KEY,
+        enabled: () => isRealKey(process.env.OPENROUTER_API_KEY),
     },
 };
 
